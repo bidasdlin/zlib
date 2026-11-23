@@ -15,6 +15,7 @@ import (
 )
 
 const kindleSMTPPasswordEnv = "ZLIB_SMTP_PWD"
+const kindleSMTPUserEnv = "ZLIB_SMTP_USER"
 const defaultKindleSMTPHost = "smtp.gmail.com"
 const defaultKindleSMTPPort = 587
 
@@ -127,6 +128,11 @@ func kindleDeliverySettings() (zlib.KindleConfig, string, error) {
 	password := os.Getenv(kindleSMTPPasswordEnv)
 	if strings.TrimSpace(password) == "" {
 		return cfg, "", fmt.Errorf("kindle smtp password not set; export %s", kindleSMTPPasswordEnv)
+	}
+	// ZLIB_SMTP_USER overrides the SMTP AUTH username without editing
+	// kindle.json, for relays whose login differs from the sender address.
+	if user := strings.TrimSpace(os.Getenv(kindleSMTPUserEnv)); user != "" {
+		cfg.SMTPUser = user
 	}
 	return cfg, password, nil
 }

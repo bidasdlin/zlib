@@ -101,6 +101,10 @@ func (m *shellModel) sendKindle(path string) tea.Cmd {
 		m.openInfo("Kindle setup required", "Set up delivery with zlib kindle config or /kindle config.")
 		return nil
 	}
+	// ZLIB_SMTP_USER overrides the SMTP AUTH username, same as the CLI path.
+	if user := strings.TrimSpace(os.Getenv(kindleSMTPUserEnv)); user != "" {
+		cfg.SMTPUser = user
+	}
 	password := os.Getenv(kindleSMTPPasswordEnv)
 	if strings.TrimSpace(password) == "" {
 		m.kindlePath = path

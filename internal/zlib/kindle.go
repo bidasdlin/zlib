@@ -25,9 +25,22 @@ type KindleConfig struct {
 	From     string `json:"from"`
 	SMTPHost string `json:"smtp_host"`
 	SMTPPort int    `json:"smtp_port"`
+	// SMTPUser is the SMTP AUTH username. Empty means From, which is what
+	// Gmail and most providers expect. Relays that assign a fixed login
+	// different from the sender address, such as Resend's "resend", need it set.
+	SMTPUser string `json:"smtp_user,omitempty"`
 	// SMTPSecurity is SMTPSecurityTLS or SMTPSecuritySTARTTLS. Empty picks the
 	// port's standard mode; see Security.
 	SMTPSecurity string `json:"smtp_security,omitempty"`
+}
+
+// SMTPUsername returns the SMTP AUTH username: SMTPUser when set, otherwise
+// the From address.
+func (c KindleConfig) SMTPUsername() string {
+	if u := strings.TrimSpace(c.SMTPUser); u != "" {
+		return u
+	}
+	return c.From
 }
 
 // SMTP connection security modes, as mail clients label them.
@@ -110,7 +123,7 @@ func SendToKindleContext(ctx context.Context, filePath string, cfg KindleConfig,
 	}
 
 	security := cfg.Security()
-	auth := smtp.PlainAuth("", cfg.From, smtpPassword, cfg.SMTPHost)
+	auth := smtp.PlainAuth("", cfg.SMTPUsername(), smtpPassword, cfg.SMTPHost)
 	if err := sendMailContext(ctx, cfg.SMTPHost, cfg.SMTPPort, security == SMTPSecurityTLS, auth, cfg.From, cfg.To, msg); err != nil {
 		addr := net.JoinHostPort(cfg.SMTPHost, strconv.Itoa(cfg.SMTPPort))
 		return fmt.Errorf("%w: %s (smtp_security %s): %w%s", ErrSMTPSend, addr, security, err, smtpModeHint(security, err))
